@@ -145,8 +145,15 @@ class ArucoNode(rclpy.node.Node):
         self.intrinsic_mat = None
         self.distortion = None
 
-        self.aruco_dictionary = cv2.aruco.Dictionary_get(dictionary_id)
-        self.aruco_parameters = cv2.aruco.DetectorParameters_create()
+        # Set up aruco detector
+        if cv2.__version__ > "4.7.0":
+            aruco_dictionary = cv2.aruco.getPredefinedDictionary(dictionary_id)
+            aruco_parameters = cv2.aruco.DetectorParameters()
+            self.detector = cv2.aruco.ArucoDetector(aruco_dictionary, aruco_parameters)
+        else:
+            self.aruco_dictionary = cv2.aruco.Dictionary_get(dictionary_id)
+            self.aruco_parameters = cv2.aruco.DetectorParameters_create()
+            
         self.bridge = CvBridge()
 
     def info_callback(self, info_msg):
@@ -174,9 +181,13 @@ class ArucoNode(rclpy.node.Node):
         markers.header.stamp = img_msg.header.stamp
         pose_array.header.stamp = img_msg.header.stamp
 
-        corners, marker_ids, rejected = cv2.aruco.detectMarkers(
-            cv_image, self.aruco_dictionary, parameters=self.aruco_parameters
-        )
+        if cv2.__version__ > "4.7.0":
+            corners, marker_ids, rejected = self.detector.detectMarkers(cv_image)
+        else:
+            corners, marker_ids, rejected = cv2.aruco.detectMarkers(
+                cv_image, self.aruco_dictionary, parameters=self.aruco_parameters
+            )
+            
         if marker_ids is not None:
             if cv2.__version__ > "4.0.0":
                 rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
