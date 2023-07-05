@@ -13,6 +13,14 @@ from ros2_aruco_interfaces.msg import ArucoMarkers
 class MarkerListener(Node):
     def __init__(self):
         super().__init__('marker_listener')
+
+        # Declare parameters
+        self.declare_parameter('scalar_x', 1.0)
+        self.declare_parameter('scalar_y', 1.0)
+        self.declare_parameter('scalar_z', 1.0)
+        self.declare_parameter('ref_marker_id', 20)
+        
+        # Setup ROS subscriber
         self.subscription = self.create_subscription(
             ArucoMarkers,
             'aruco_markers',
@@ -32,8 +40,10 @@ class MarkerListener(Node):
             return
         try:
         
-            # Find the index of the marker with id 0
-            ref_marker_index = msg.marker_ids.index(20)
+            # Find the index of the reference marker
+            ref_marker_index = msg.marker_ids.index(
+                self.get_parameter("ref_marker_id").get_parameter_value().integer_value
+            )
         
         except:
             self.get_logger().warn("Reference marker not found!")
@@ -51,6 +61,7 @@ class MarkerListener(Node):
         # Transform the poses of the other markers relative to the reference marker
         for i in range(len(msg.marker_ids)):
             if i != ref_marker_index:
+                
                 # Compute the relative pose
                 relative_pose = Pose()
                 relative_pose.position.x = msg.poses[i].position.x - ref_pose.position.x
@@ -61,6 +72,11 @@ class MarkerListener(Node):
                 relative_orientation = self.compute_relative_orientation(ref_pose.orientation, msg.poses[i].orientation)
                 relative_pose.orientation = relative_orientation
 
+                # Apply scalar offset
+                relative_pose.position.x = relative_pose.position.x * self.get_parameter("scalar_x").get_parameter_value().double_value
+                relative_pose.position.y = relative_pose.position.y * self.get_parameter("scalar_y").get_parameter_value().double_value
+                relative_pose.position.z = relative_pose.position.z * self.get_parameter("scalar_z").get_parameter_value().double_value
+                
                 # Add the marker id and transformed pose to the new message
                 robot_location_msg.marker_ids.append(msg.marker_ids[i])
                 robot_location_msg.poses.append(relative_pose)
