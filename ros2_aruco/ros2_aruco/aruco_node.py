@@ -1,3 +1,4 @@
+
 """
 This node locates Aruco AR markers in images and publishes their ids and poses.
 
@@ -33,6 +34,7 @@ from rclpy.qos import qos_profile_sensor_data
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
+from packaging.version import Version
 import tf_transformations
 from sensor_msgs.msg import CameraInfo
 from sensor_msgs.msg import Image
@@ -137,8 +139,8 @@ class ArucoNode(rclpy.node.Node):
         )
 
         # Set up publishers
-        self.poses_pub = self.create_publisher(PoseArray, "aruco_poses", 10)
-        self.markers_pub = self.create_publisher(ArucoMarkers, "aruco_markers", 10)
+        #self.poses_pub = self.create_publisher(PoseArray, "aruco_poses", 10)
+        self.markers_pub = self.create_publisher(ArucoMarkers, "aruco/markers", 10)
 
         # Set up fields for camera parameters
         self.info_msg = None
@@ -146,7 +148,7 @@ class ArucoNode(rclpy.node.Node):
         self.distortion = None
 
         # Set up aruco detector
-        if cv2.__version__ > "4.7.0":
+        if Version(cv2.__version__) > Version("4.7.0"):
             aruco_dictionary = cv2.aruco.getPredefinedDictionary(dictionary_id)
             aruco_parameters = cv2.aruco.DetectorParameters()
             self.detector = cv2.aruco.ArucoDetector(aruco_dictionary, aruco_parameters)
@@ -181,15 +183,15 @@ class ArucoNode(rclpy.node.Node):
         markers.header.stamp = img_msg.header.stamp
         pose_array.header.stamp = img_msg.header.stamp
 
-        if cv2.__version__ > "4.7.0":
+        if Version(cv2.__version__) > Version("4.7.0"):
             corners, marker_ids, rejected = self.detector.detectMarkers(cv_image)
         else:
             corners, marker_ids, rejected = cv2.aruco.detectMarkers(
-                cv_image, self.aruco_dictionary, parameters=self.aruco_parameters
+                cv_image, self.aruco_dictionary, parameters = self.aruco_parameters
             )
             
         if marker_ids is not None:
-            if cv2.__version__ > "4.0.0":
+            if Version(cv2.__version__) > Version("4.7.0"):
                 rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
                     corners, self.marker_size, self.intrinsic_mat, self.distortion
                 )
@@ -212,11 +214,11 @@ class ArucoNode(rclpy.node.Node):
                 pose.orientation.z = quat[2]
                 pose.orientation.w = quat[3]
 
-                pose_array.poses.append(pose)
+                #pose_array.poses.append(pose)
                 markers.poses.append(pose)
                 markers.marker_ids.append(marker_id[0])
 
-            self.poses_pub.publish(pose_array)
+            #self.poses_pub.publish(pose_array)
             self.markers_pub.publish(markers)
 
 

@@ -18,18 +18,18 @@ class MarkerListener(Node):
         self.declare_parameter('scalar_x', 1.0)
         self.declare_parameter('scalar_y', 1.0)
         self.declare_parameter('scalar_z', 1.0)
-        self.declare_parameter('ref_marker_id', 20)
+        self.declare_parameter('ref_marker_id', 0)
         
         # Setup ROS subscriber
         self.subscription = self.create_subscription(
             ArucoMarkers,
-            'aruco_markers',
+            'aruco/markers',
             self.marker_callback,
             10
         )
         self.publisher = self.create_publisher(
             ArucoMarkers,
-            'robot_location',
+            'aruco/transformed',
             10
         )
 
@@ -53,10 +53,10 @@ class MarkerListener(Node):
         ref_pose = msg.poses[ref_marker_index]
 
         # Create a new ArucoMarkers to store the transformed poses
-        robot_location_msg = ArucoMarkers()
-        robot_location_msg.header = msg.header
-        robot_location_msg.marker_ids = []
-        robot_location_msg.poses = []
+        markers = ArucoMarkers()
+        markers.header = msg.header
+        markers.marker_ids = []
+        markers.poses = []
 
         # Transform the poses of the other markers relative to the reference marker
         for i in range(len(msg.marker_ids)):
@@ -78,12 +78,12 @@ class MarkerListener(Node):
                 relative_pose.position.z = relative_pose.position.z * self.get_parameter("scalar_z").get_parameter_value().double_value
                 
                 # Add the marker id and transformed pose to the new message
-                robot_location_msg.marker_ids.append(msg.marker_ids[i])
-                robot_location_msg.poses.append(relative_pose)
+                markers.marker_ids.append(msg.marker_ids[i])
+                markers.poses.append(relative_pose)
 
         # Publish the transformed poses
-        self.publisher.publish(robot_location_msg)
-
+        self.publisher.publish(markers)
+                            
     def compute_relative_orientation(self, ref_orientation, orientation):
         # Convert the reference and target orientations to Euler angles
         ref_euler = self.quaternion_to_euler(ref_orientation)
