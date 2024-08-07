@@ -9,14 +9,15 @@ def generate_launch_description():
         get_package_share_directory('ros2_aruco'),
         'config',
         'aruco_parameters.yaml'
-        )
+    )
 
-    aruco_node = Node(
-        package='ros2_aruco',
-        executable='aruco_node',
-        parameters=[aruco_params]
+    aruco_detection_node = Node(
+        package = 'ros2_aruco',
+        executable = 'aruco_detection',
+        name = 'aruco_detection_node',
+        parameters = [aruco_params]
     )
 
     return LaunchDescription([
-        aruco_node
+        aruco_detection_node
     ])

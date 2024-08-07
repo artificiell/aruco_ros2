@@ -29,7 +29,7 @@ Version: 10/26/2020
 """
 
 import rclpy
-import rclpy.node
+from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from cv_bridge import CvBridge
 import numpy as np
@@ -38,58 +38,58 @@ from packaging.version import Version
 import tf_transformations
 from sensor_msgs.msg import CameraInfo
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import PoseArray, Pose
+from geometry_msgs.msg import Pose
 from ros2_aruco_interfaces.msg import ArucoMarkers
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 
 
-class ArucoNode(rclpy.node.Node):
+class ArucoDetection(Node):
     def __init__(self):
-        super().__init__("aruco_node")
+        super().__init__("aruco_detection_node")
 
         # Declare and read parameters
         self.declare_parameter(
-            name="marker_size",
-            value=0.0625,
-            descriptor=ParameterDescriptor(
-                type=ParameterType.PARAMETER_DOUBLE,
-                description="Size of the markers in meters.",
+            name = "marker_size",
+            value = 0.0625,
+            descriptor = ParameterDescriptor(
+                type = ParameterType.PARAMETER_DOUBLE,
+                description = "Size of the markers in meters.",
             ),
         )
 
         self.declare_parameter(
-            name="aruco_dictionary_id",
-            value="DICT_5X5_250",
-            descriptor=ParameterDescriptor(
-                type=ParameterType.PARAMETER_STRING,
-                description="Dictionary that was used to generate markers.",
+            name = "aruco_dictionary_id",
+            value = "DICT_5X5_250",
+            descriptor = ParameterDescriptor(
+                type = ParameterType.PARAMETER_STRING,
+                description = "Dictionary that was used to generate markers.",
             ),
         )
 
         self.declare_parameter(
-            name="image_topic",
-            value="/camera/image_raw",
-            descriptor=ParameterDescriptor(
-                type=ParameterType.PARAMETER_STRING,
-                description="Image topic to subscribe to.",
+            name = "image_topic",
+            value = "/camera/image_raw",
+            descriptor = ParameterDescriptor(
+                type = ParameterType.PARAMETER_STRING,
+                description = "Image topic to subscribe to.",
             ),
         )
 
         self.declare_parameter(
-            name="camera_info_topic",
-            value="/camera/camera_info",
-            descriptor=ParameterDescriptor(
-                type=ParameterType.PARAMETER_STRING,
-                description="Camera info topic to subscribe to.",
+            name = "camera_info_topic",
+            value = "/camera/camera_info",
+            descriptor = ParameterDescriptor(
+                type = ParameterType.PARAMETER_STRING,
+                description = "Camera info topic to subscribe to.",
             ),
         )
 
         self.declare_parameter(
-            name="camera_frame",
-            value="",
-            descriptor=ParameterDescriptor(
-                type=ParameterType.PARAMETER_STRING,
-                description="Camera optical frame to use.",
+            name = "camera_frame",
+            value = "",
+            descriptor = ParameterDescriptor(
+                type = ParameterType.PARAMETER_STRING,
+                description = "Camera optical frame to use.",
             ),
         )
 
@@ -139,8 +139,8 @@ class ArucoNode(rclpy.node.Node):
         )
 
         # Set up publishers
-        #self.poses_pub = self.create_publisher(PoseArray, "aruco_poses", 10)
         self.markers_pub = self.create_publisher(ArucoMarkers, "aruco/markers", 10)
+        self.image_pub = self.create_publisher(Image, "aruco/image", 10)
 
         # Set up fields for camera parameters
         self.info_msg = None
@@ -170,26 +170,27 @@ class ArucoNode(rclpy.node.Node):
             self.get_logger().warn("No camera info has been received!")
             return
 
-        cv_image = self.bridge.imgmsg_to_cv2(img_msg, desired_encoding="mono8")
+        image = self.bridge.imgmsg_to_cv2(img_msg, 'bgr8')
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         markers = ArucoMarkers()
-        pose_array = PoseArray()
         if self.camera_frame == "":
             markers.header.frame_id = self.info_msg.header.frame_id
-            pose_array.header.frame_id = self.info_msg.header.frame_id
         else:
             markers.header.frame_id = self.camera_frame
-            pose_array.header.frame_id = self.camera_frame
-
         markers.header.stamp = img_msg.header.stamp
-        pose_array.header.stamp = img_msg.header.stamp
 
+        # Detect markers
         if Version(cv2.__version__) > Version("4.7.0"):
-            corners, marker_ids, rejected = self.detector.detectMarkers(cv_image)
+            corners, marker_ids, rejected = self.detector.detectMarkers(gray)
         else:
             corners, marker_ids, rejected = cv2.aruco.detectMarkers(
-                cv_image, self.aruco_dictionary, parameters = self.aruco_parameters
+                gray, self.aruco_dictionary, parameters = self.aruco_parameters
             )
             
+        # Draw marker corners
+        cv2.aruco.drawDetectedMarkers(image, corners)
+
+        # Process each detected marker
         if marker_ids is not None:
             if Version(cv2.__version__) > Version("4.7.0"):
                 rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
@@ -214,22 +215,25 @@ class ArucoNode(rclpy.node.Node):
                 pose.orientation.z = quat[2]
                 pose.orientation.w = quat[3]
 
-                #pose_array.poses.append(pose)
                 markers.poses.append(pose)
                 markers.marker_ids.append(marker_id[0])
 
-            #self.poses_pub.publish(pose_array)
+
             self.markers_pub.publish(markers)
 
+        # Publish display image
+        try:
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(image, encoding='bgr8'))
+        except CvBridgeError as e:
+            self.get_logger().error(f"Bridge error: {e}")
 
-def main():
-    rclpy.init()
-    node = ArucoNode()
+# Main function
+def main(args = None):
+    rclpy.init(args = args)
+    node = ArucoDetection()
     rclpy.spin(node)
-
     node.destroy_node()
     rclpy.shutdown()
-
 
 if __name__ == "__main__":
     main()
