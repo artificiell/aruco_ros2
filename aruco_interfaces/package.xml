@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ros2_aruco_interfaces</name>
-  <version>0.1.0</version>
-  <description>Custom messages for ros2_aruco</description>
-  <maintainer email="nathan.r.sprague@gmail.com">Nathan Sprague</maintainer>
-  <license>TODO: License declaration</license>
+  <name>aruco_interfaces</name>
+  <version>0.1.1</version>
+  <description>Custom messages for Aruco markers</description>
+  <maintainer email="andreas.persson@oru.se">Andreas Persson</maintainer>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

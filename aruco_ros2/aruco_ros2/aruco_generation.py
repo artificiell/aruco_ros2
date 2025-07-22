@@ -36,7 +36,7 @@ def main():
                         help=dict_help, metavar='')
     args = parser.parse_args()
 
-        # Convert meters to pixels
+    # Convert meters to pixels
     inches_per_meter = 39.3701
     pixel_size = int(round(args.size * inches_per_meter * args.dpi))
 

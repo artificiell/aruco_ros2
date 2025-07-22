@@ -5,13 +5,12 @@ This node locates Aruco AR markers in images and publishes their ids and poses.
 Subscriptions:
    /camera/image_raw (sensor_msgs.msg.Image)
    /camera/camera_info (sensor_msgs.msg.CameraInfo)
-   /camera/camera_info (sensor_msgs.msg.CameraInfo)
 
 Published Topics:
-    /aruco_poses (geometry_msgs.msg.PoseArray)
+    /aruco/poses (geometry_msgs.msg.PoseArray)
        Pose of all detected markers (suitable for rviz visualization)
 
-    /aruco_markers (ros2_aruco_interfaces.msg.ArucoMarkers)
+    /aruco/markers (aruco_interfaces.msg.ArucoMarkers)
        Provides an array of all poses along with the corresponding
        marker ids.
 
@@ -39,7 +38,7 @@ import tf_transformations
 from sensor_msgs.msg import CameraInfo
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose
-from ros2_aruco_interfaces.msg import ArucoMarkers
+from aruco_interfaces.msg import ArucoMarker, ArucoMarkers
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 
 
@@ -174,6 +173,8 @@ class ArucoDetection(Node):
         image = self.bridge.imgmsg_to_cv2(img_msg, 'bgr8')
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         markers = ArucoMarkers()
+        markers.markers = []
+        
         if self.camera_frame == "":
             markers.header.frame_id = self.info_msg.header.frame_id
         else:
@@ -211,9 +212,10 @@ class ArucoDetection(Node):
                 pose.orientation.z = quat[2]
                 pose.orientation.w = quat[3]
 
-                markers.poses.append(pose)
-                markers.marker_ids.append(marker_id[0])
-
+                marker = ArucoMarker()
+                marker.id = int(marker_id[0])
+                marker.pose = pose
+                markers.markers.append(marker)
 
             self.markers_pub.publish(markers)
 

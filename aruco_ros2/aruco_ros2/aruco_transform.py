@@ -7,12 +7,12 @@ from geometry_msgs.msg import PoseStamped
 from tf2_ros import TransformStamped
 import tf2_ros
 from tf2_geometry_msgs import do_transform_pose
-from ros2_aruco_interfaces.msg import ArucoMarkers
+from aruco_interfaces.msg import ArucoMarker, ArucoMarkers
 
 
-class MarkerListener(Node):
+class ArucoTransformer(Node):
     def __init__(self):
-        super().__init__('marker_listener')
+        super().__init__('aruco_tranformer_node')
 
         # Declare parameters
         self.declare_parameter('scalar_x', 1.0)
@@ -34,43 +34,35 @@ class MarkerListener(Node):
         )
 
     def marker_callback(self, msg):
-        # Check if the marker_ids and poses lists have the same length
-        if len(msg.marker_ids) != len(msg.poses):
-            self.get_logger().warn("Number of marker_ids and poses don't match!")
-            return
-        try:
-        
-            # Find the index of the reference marker
-            ref_marker_index = msg.marker_ids.index(
-                self.get_parameter("ref_marker_id").get_parameter_value().integer_value
-            )
-        
-        except:
+        ref_marker_index = -1
+        for i in range(len(msg.markers)):
+            if self.get_parameter("ref_marker_id").get_parameter_value().integer_value == msg.markers[i].id:
+                ref_marker_index = i
+                break
+        if ref_marker_index < 0:
             self.get_logger().warn("Reference marker not found!")
             return
             
         # Get the pose of the reference marker
-        ref_pose = msg.poses[ref_marker_index]
+        ref_pose = msg.markers[ref_marker_index].pose
 
         # Create a new ArucoMarkers to store the transformed poses
         markers = ArucoMarkers()
         markers.header = msg.header
-        markers.marker_ids = []
-        markers.poses = []
+        markers.markers = []
 
         # Transform the poses of the other markers relative to the reference marker
-        for i in range(len(msg.marker_ids)):
+        for i in range(len(msg.markers)):
             if i != ref_marker_index:
                 
                 # Compute the relative pose
                 relative_pose = Pose()
-                relative_pose.position.x = msg.poses[i].position.x - ref_pose.position.x
-                relative_pose.position.y = msg.poses[i].position.y - ref_pose.position.y
-                relative_pose.position.z = msg.poses[i].position.z - ref_pose.position.z
+                relative_pose.position.x = msg.markers[i].pose.position.x - ref_pose.position.x
+                relative_pose.position.y = msg.markers[i].pose.position.y - ref_pose.position.y
+                relative_pose.position.z = msg.markers[i].pose.position.z - ref_pose.position.z
 
                 # Compute the relative orientation quaternion
-                relative_orientation = self.compute_relative_orientation(ref_pose.orientation, msg.poses[i].orientation)
-                relative_pose.orientation = relative_orientation
+                relative_pose.orientation = self.compute_relative_orientation(ref_pose.orientation, msg.markers[i].pose.orientation)
 
                 # Apply scalar offset
                 relative_pose.position.x = relative_pose.position.x * self.get_parameter("scalar_x").get_parameter_value().double_value
@@ -78,8 +70,10 @@ class MarkerListener(Node):
                 relative_pose.position.z = relative_pose.position.z * self.get_parameter("scalar_z").get_parameter_value().double_value
                 
                 # Add the marker id and transformed pose to the new message
-                markers.marker_ids.append(msg.marker_ids[i])
-                markers.poses.append(relative_pose)
+                marker = ArucoMarker()
+                marker.id = msg.markers[i].id
+                marker.pose = relative_pose
+                markers.markers.append(marker)
 
         # Publish the transformed poses
         self.publisher.publish(markers)
@@ -145,9 +139,9 @@ class MarkerListener(Node):
 
 
 def main(args=None):
-    rclpy.init(args=args)
-    marker_listener = MarkerListener()
-    rclpy.spin(marker_listener)
+    rclpy.init(args = args)
+    node = ArucoTransformer()
+    rclpy.spin(node)
     marker_listener.destroy_node()
     rclpy.shutdown()
 

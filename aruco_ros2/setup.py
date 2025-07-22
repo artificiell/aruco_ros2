@@ -2,11 +2,11 @@ from setuptools import setup
 import os
 from glob import glob
 
-package_name = 'ros2_aruco'
+package_name = 'aruco_ros2'
 
 setup(
     name=package_name,
-    version='0.1.1',
+    version='0.1.2',
     packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -24,11 +24,11 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'aruco_detection = ros2_aruco.aruco_detection:main',
-            'aruco_generation = ros2_aruco.aruco_generation:main',
-            'aruco_transform = ros2_aruco.aruco_transform:main',
-            'aruco_affirm = ros2_aruco.aruco_affirm:main',
-            'aruco_display = ros2_aruco.aruco_display:main'
+            'aruco_detection = aruco_ros2.aruco_detection:main',
+            'aruco_generation = aruco_ros2.aruco_generation:main',
+            'aruco_transform = aruco_ros2.aruco_transform:main',
+            'aruco_affirm = aruco_ros2.aruco_affirm:main',
+            'aruco_display = aruco_ros2.aruco_display:main'
         ],
     },
 )

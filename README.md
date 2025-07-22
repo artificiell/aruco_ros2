@@ -1,4 +1,4 @@
-# ros2_aruco
+# aruco_ros2
 
 ROS2 Wrapper for OpenCV Aruco Marker Tracking
 
@@ -8,7 +8,7 @@ This package depends on a recent version of OpenCV python bindings and transform
 pip3 install opencv-contrib-python transforms3d
 ```
 
-## ROS2 API for the ros2_aruco Node
+## ROS2 API for the aruco_ros2 Node
 
 This node locates Aruco AR markers in images and publishes their ids and poses.
 
@@ -17,8 +17,8 @@ Subscriptions:
 * `/camera/camera_info` (`sensor_msgs.msg.CameraInfo`)
 
 Published Topics:
-* `/aruco_poses` (`geometry_msgs.msg.PoseArray`) - Poses of all detected markers (suitable for rviz visualization)
-* `/aruco_markers` (`ros2_aruco_interfaces.msg.ArucoMarkers`) - Provides an array of all poses along with the corresponding marker ids
+* `/aruco/poses` (`geometry_msgs.msg.PoseArray`) - Poses of all detected markers (suitable for rviz visualization)
+* `/aruco/markers` (`aruco_ros2_interfaces.msg.ArucoMarkers`) - Provides an array of all poses along with the corresponding marker ids
 
 Parameters:
 * `marker_size` - size of the markers in meters (default .0625)
@@ -31,17 +31,17 @@ Parameters:
 
 1. Using the launch file - parameters will be loaded from _aruco\_parameters.yaml_.
 ```
-ros2 launch ros2_aruco aruco_recognition.launch.py
+ros2 launch aruco_ros2 aruco_recognition.launch.py
 ```
 2. As a single ROS 2 node - you can specify parameter values at startup by adding `--ros-args -p marker_size:=.05`, for example.
 ```
-ros2 run ros2_aruco aruco_node
+ros2 run aruco_ros2 aruco_node
 ```
 
 ## Generating Marker Images
 
 ```
-ros2 run ros2_aruco aruco_generate_marker
+ros2 run aruco_ros2 aruco_generate_marker
 ```
 
 Pass the `-h` flag for usage information: 

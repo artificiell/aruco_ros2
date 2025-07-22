@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from ros2_aruco_interfaces.msg import ArucoMarkers
+from aruco_interfaces.msg import ArucoMarkers
 from tf_transformations import euler_from_quaternion
 import math
 
@@ -24,17 +24,17 @@ class ArucoAffirm(Node):
 
     # Get aruco marker readings
     def markers_callback(self, msg):
-        for id, pose in zip(msg.marker_ids, msg.poses):
-            self.get_logger().info(f"Marker: {id}")
+        for marker in msg.markers:
+            self.get_logger().info(f"Marker: {marker.id}")
             self.position = {
-                'x': pose.position.x,
-                'y': pose.position.y,
-                'yaw': self.euler_yaw_from_quaternion(pose.orientation.z, pose.orientation.w),
+                'x': marker.pose.position.x,
+                'y': marker.pose.position.y,
+                'yaw': self.euler_yaw_from_quaternion(marker.pose.orientation.z, marker.pose.orientation.w),
                 'test': euler_from_quaternion([
-                    pose.orientation.x,
-                    pose.orientation.y,
-                    pose.orientation.z,
-                    pose.orientation.w
+                    marker.pose.orientation.x,
+                    marker.pose.orientation.y,
+                    marker.pose.orientation.z,
+                    marker.pose.orientation.w
                 ])[2]
             }
             self.get_logger().info(f"Distance: {self.calc_distance()} (m)")
