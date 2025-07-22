@@ -92,6 +92,15 @@ class ArucoDetection(Node):
             ),
         )
 
+        self.declare_parameter(
+            name = "display_markers",
+            value = False,
+            descriptor = ParameterDescriptor(
+                type = ParameterType.PARAMETER_BOOL,
+                description = "Display detected markers (or not).",
+            ),
+        )
+        
         self.marker_size = (
             self.get_parameter("marker_size").get_parameter_value().double_value
         )
@@ -115,9 +124,14 @@ class ArucoDetection(Node):
         self.camera_frame = (
             self.get_parameter("camera_frame").get_parameter_value().string_value
         )
-        self.get_logger().info(f"OpenCV version: {cv2.__version__}")
+        
+        self.display_markers = (
+            self.get_parameter("display_markers").get_parameter_value().bool_value
+        )
+        self.get_logger().info(f"Markers displayed: {self.display_markers}")
         
         # Make sure we have a valid dictionary id:
+        self.get_logger().info(f"OpenCV version: {cv2.__version__}")
         try:
             dictionary_id = cv2.aruco.__getattribute__(dictionary_id_name)
             if type(dictionary_id) != type(cv2.aruco.DICT_5X5_100):
@@ -133,14 +147,13 @@ class ArucoDetection(Node):
         self.info_sub = self.create_subscription(
             CameraInfo, info_topic, self.info_callback, qos_profile_sensor_data
         )
-
-        self.create_subscription(
+        self.image_sub = self.create_subscription(
             Image, image_topic, self.image_callback, qos_profile_sensor_data
         )
-
+        self.bridge = CvBridge()
+        
         # Set up publishers
         self.markers_pub = self.create_publisher(ArucoMarkers, "aruco/markers", 10)
-        self.image_pub = self.create_publisher(Image, "aruco/image", 10)
 
         # Set up fields for camera parameters
         self.info_msg = None
@@ -156,8 +169,6 @@ class ArucoDetection(Node):
             self.aruco_dictionary = cv2.aruco.Dictionary_get(dictionary_id)
             self.aruco_parameters = cv2.aruco.DetectorParameters_create()
             
-        self.bridge = CvBridge()
-
     def info_callback(self, info_msg):
         self.info_msg = info_msg
         self.intrinsic_mat = np.reshape(np.array(self.info_msg.k), (3, 3))
@@ -188,9 +199,6 @@ class ArucoDetection(Node):
             corners, marker_ids, rejected = cv2.aruco.detectMarkers(
                 gray, self.aruco_dictionary, parameters = self.aruco_parameters
             )
-            
-        # Draw marker corners
-        cv2.aruco.drawDetectedMarkers(image, corners)
 
         # Process each detected marker
         if marker_ids is not None:
@@ -217,13 +225,17 @@ class ArucoDetection(Node):
                 marker.pose = pose
                 markers.markers.append(marker)
 
-            self.markers_pub.publish(markers)
+        # Publish markers
+        self.markers_pub.publish(markers)
 
-        # Publish display image
-        try:
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(image, encoding='bgr8'))
-        except CvBridgeError as e:
-            self.get_logger().error(f"Bridge error: {e}")
+        # Draw and display markers 
+        if self.display_markers:
+            try:
+                cv2.aruco.drawDetectedMarkers(image, corners)
+                cv2.imshow('Aruco Markers', image)
+                cv2.waitKey(1)
+            except Expection as e:
+                self.get_logger().error(f"Error displaying markers: {e}")            
 
 # Main function
 def main(args = None):
