@@ -59,7 +59,7 @@ class ArucoDetection(Node):
 
         self.declare_parameter(
             name = "aruco_dictionary_id",
-            value = "DICT_5X5_250",
+            value = "DICT_ARUCO_ORIGINAL",
             descriptor = ParameterDescriptor(
                 type = ParameterType.PARAMETER_STRING,
                 description = "Dictionary that was used to generate markers.",
@@ -116,7 +116,8 @@ class ArucoDetection(Node):
         self.camera_frame = (
             self.get_parameter("camera_frame").get_parameter_value().string_value
         )
-
+        self.get_logger().info(f"OpenCV version: {cv2.__version__}")
+        
         # Make sure we have a valid dictionary id:
         try:
             dictionary_id = cv2.aruco.__getattribute__(dictionary_id_name)
@@ -192,14 +193,9 @@ class ArucoDetection(Node):
 
         # Process each detected marker
         if marker_ids is not None:
-            if Version(cv2.__version__) > Version("4.7.0"):
-                rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
-                    corners, self.marker_size, self.intrinsic_mat, self.distortion
-                )
-            else:
-                rvecs, tvecs = cv2.aruco.estimatePoseSingleMarkers(
-                    corners, self.marker_size, self.intrinsic_mat, self.distortion
-                )
+            rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
+                corners, self.marker_size, self.intrinsic_mat, self.distortion
+            )
             for i, marker_id in enumerate(marker_ids):
                 pose = Pose()
                 pose.position.x = tvecs[i][0][0]
