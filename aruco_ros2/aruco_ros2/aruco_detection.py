@@ -153,7 +153,7 @@ class ArucoDetection(Node):
         self.bridge = CvBridge()
         
         # Set up publishers
-        self.markers_pub = self.create_publisher(ArucoMarkers, "aruco/markers", 10)
+        self.markers_pub = self.create_publisher(ArucoMarkers, "aruco/markers/original", qos_profile_sensor_data)
 
         # Set up fields for camera parameters
         self.info_msg = None

@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from std_msgs.msg import Header
 from std_msgs.msg import Int64MultiArray
 from geometry_msgs.msg import Pose
@@ -23,14 +24,14 @@ class ArucoTransformer(Node):
         # Setup ROS subscriber
         self.subscription = self.create_subscription(
             ArucoMarkers,
-            'aruco/markers',
+            'aruco/markers/original',
             self.marker_callback,
-            10
+            qos_profile_sensor_data
         )
         self.publisher = self.create_publisher(
             ArucoMarkers,
-            'aruco/transformed',
-            10
+            'aruco/markers/transformed',
+            qos_profile_sensor_data
         )
 
     def marker_callback(self, msg):
